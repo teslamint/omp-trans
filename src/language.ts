@@ -41,8 +41,9 @@ export function toLanguageCode(value: string | undefined | null): string | undef
 }
 
 /**
- * The person's language: the mod's own option, else Claude Code's `language`
- * setting, else the system locale, else English (nothing to translate).
+ * The person's language: the mod's own option, else a host `language` setting
+ * (OMP has none; index.ts passes undefined), else the system locale, else English
+ * (nothing to translate).
  */
 export function pickLanguage(option: string, setting: unknown, locales: (string | undefined)[]): { code: string; from: 'option' | 'setting' | 'locale' | 'none' } {
   const fromOption = toLanguageCode(option)

@@ -1,4 +1,4 @@
-// The mod's own words. Always English, like Claude Code's own interface:
+// The mod's own words. Always English, like OMP's own interface:
 // only the translations are in the person's language.
 
 type Key =
@@ -20,10 +20,8 @@ type Key =
   | 'queuedShort'
   | 'missingOpenai'
   | 'missingCommand'
-  | 'languageSetting'
   | 'usage'
   | 'from_option'
-  | 'from_setting'
   | 'from_locale'
   | 'from_none'
 
@@ -46,10 +44,8 @@ const EN: Record<Key, string> = {
   queuedShort: '{0} queued',
   missingOpenai: '⚠ The openai engine needs openaiBaseUrl and openaiModel.',
   missingCommand: '⚠ The command engine needs a command.',
-  languageSetting: 'Note: your language setting ({0}) asks Claude to answer in that language; replies already in your language are shown as they are.',
   usage: 'Usage: /translate [on|off|status|view <mode>]',
   from_option: 'from the language option',
-  from_setting: "from Claude Code's language setting",
   from_locale: 'from the system locale',
   from_none: 'nothing set: no translation',
 }

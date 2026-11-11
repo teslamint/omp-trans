@@ -1,7 +1,7 @@
-import { expect, test } from 'claude-code/testing'
+import { expect, test } from 'bun:test'
 
-import { buildBlock, buildDocument, maskText, planMarkdown, restoreUnit, unmask } from '../hooks/markdown'
-import { scriptOf, scriptShare } from '../hooks/detect'
+import { buildBlock, buildDocument, maskText, planMarkdown, restoreUnit, unmask } from '../src/markdown'
+import { scriptOf, scriptShare } from '../src/detect'
 
 const CORPUS = [
   '',

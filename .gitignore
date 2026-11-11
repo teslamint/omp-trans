@@ -1,4 +1,3 @@
+node_modules
+bun.lock
 .DS_Store
-.claude-plugin/types/
-node_modules/
-demo/out/

@@ -84,6 +84,16 @@ export function scriptShare(text: string, script: Script): number {
   return count(prose, SCRIPT_RE[script]) / letters
 }
 
+/**
+ * Whether a reply is already in the reader's language, judged by script. A Latin-script language
+ * (es, de, fr, ...) cannot be told from English by script, so this is never true for it: the
+ * engine returns text already in the target language unchanged, and the display drops an
+ * unchanged block.
+ */
+export function alreadyInScript(text: string, script: Script): boolean {
+  return script !== 'Latin' && scriptShare(text, script) > 0.3
+}
+
 /** True when the text has any letter outside code. */
 export function hasLetters(text: string): boolean {
   return /\p{L}/u.test(proseOnly(text))

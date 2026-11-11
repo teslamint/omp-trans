@@ -1,128 +1,127 @@
-# cc-trans
+# omp-trans
 
-**English** · [한국어](README.ko.md) · [日本語](README.ja.md) · [简体中文](README.zh-CN.md)
+**Talk to [Oh My Pi](https://github.com/can1357/oh-my-pi) (OMP) in your own language. The model still works in English.**
 
-**Talk to Claude Code in your own language. Claude still works in English.**
+You type in Korean, Japanese, Chinese, Spanish… and the model receives English. It answers in
+English, and each reply gets a translation under it. Code, paths, commands and Markdown structure
+never go through the translator.
 
-You type in Korean, Japanese, Chinese, Spanish… and Claude receives clean English. Claude answers
-in English, and each paragraph gets a quiet translation right under it. Code is never touched.
+This is an OMP port of [midagedev/cc-trans](https://github.com/midagedev/cc-trans), a Claude Code
+mod (MIT). The translation core is upstream's; the Claude Code adapter is replaced by an OMP
+extension. The plugin keeps the name `cc-trans`, so commands, settings and `CC_TRANS_*` variables
+match upstream.
 
-![A Korean prompt reaches Claude in English; Claude fixes the file, and its English answers get a muted Korean translation under each paragraph, then the same transcript side by side and translated only](demo/cc-trans.gif)
+## Install
 
-```
-/plugin install cc-trans --marketplace midagedev/cc-trans
-```
-
-## Why
-
-- **Think in your language, keep the session in English.** Claude only ever reads English, so its
-  answers, and what it writes into your repo (comments, commit messages, docs), come out in English
-  like the rest of your code.
-- **Read the original, glance at the translation.** The English stays the main text, so you keep
-  the exact wording and the technical terms; the translation sits under it, muted, for when you need it.
-- **No waiting.** The English for your prompt is ready before you press Enter, and replies are
-  translated in the background, never holding Claude up.
-
-## What you get
-
-**A live English preview while you type.** A band above the prompt shows what Claude will read
-(`EN ▸ …`). Enter sends exactly that, with no extra round trip. The transcript keeps what you typed,
-with the English under it:
-
-```
-> users.js의 loadUsers가 왜 느린지 한 문장으로 말하고 바로 고쳐줘
-  ↳ In one sentence, tell me why users.js's loadUsers is slow, then fix it right away
+```sh
+git clone https://github.com/teslamint/omp-trans.git ~/workspace/omp-trans
+cd ~/workspace/omp-trans && bun install
+omp plugin link ~/workspace/omp-trans
+omp plugin config set cc-trans language ko
 ```
 
-**Translations that know what code is.** Code blocks, `inline code`, paths, URLs, flags, `snake_case`,
-`camelCase` and `dotted.members` never go to the translator: they are swapped for placeholders and
-put back byte for byte. Headings, lists, quotes and tables keep their shape line for line.
+Restart OMP to load it. To try it without installing:
 
-**Pick how replies look.** `/translate view <mode>` redraws the whole transcript:
+```sh
+CC_TRANS_LANGUAGE=ko omp -e ~/workspace/omp-trans/src/index.ts
+```
 
-| View | What you see |
+## What it does
+
+| Where | Behavior |
 | --- | --- |
-| `stacked` | each paragraph as Claude wrote it, its translation right under it, indented and muted |
-| `side` | English left, translation right, block by block |
-| `translated` | the translation only, code in place |
-| `interleave` | each paragraph, then its translation as a quote |
-| `below` | the English reply, then the whole translation |
-| `original` | English only |
-| `auto` (default) | `side` on a terminal 140+ columns wide, else `stacked` |
+| Prompt, on Enter | Text in your language is translated to English and sent. On failure or after 15 s, the original is sent with a warning. Lines starting with `/`, `!` or `$` pass through. |
+| Prompt, while typing | 700 ms after you stop typing, `EN ▸ …` appears above the prompt. Enter sends that English with no extra wait. |
+| Replies | Each final text block keeps its English and gets a translation. This is display only: the session, exports and model context keep the English. |
+| Status line | `ko↔en · <engine> · N queued` |
 
-**Any language, any translator.** By default the translation runs on Claude Haiku through your own
-Claude Code session: nothing to set up. Prefer something else? Point it at any OpenAI-compatible
-server (Ollama, LM Studio, DeepSeek, OpenRouter) or at your own program (Apple Translation, DeepL,
-Papago).
-
-## Use it
+### Commands
 
 | Command | |
 | --- | --- |
 | `/translate` | turn translation on or off |
+| `/translate on` · `/translate off` | set it explicitly |
 | `/translate view <mode>` | change how replies are shown |
 | `/translate status` | language, engine, view and queue |
 
-The hint under the prompt shows what is running, e.g. `ko↔en · haiku · 2 queued`.
+### Views
+
+| View | What you see |
+| --- | --- |
+| `auto` (default) | same as `interleave` |
+| `interleave` | each paragraph, then its translation as a quote |
+| `below` | the English reply, then the whole translation |
+| `translated` | the translation only, code in place |
+| `original` | English only |
+
+To draw replies, the extension turns on **Tools → Extensions → Extension Reply Renderers**
+(`extensionRenderers.assistantText`) at session start, unless you set it yourself.
 
 ## Your language
 
-cc-trans picks your language from, in order: its `language` option, Claude Code's `language`
-setting, then your system locale (`LANG`). A code (`ko`, `ja`, `zh`, `es`) or a name (`Korean`,
-`日本語`) both work. With nothing set (or English), it stays out of the way.
+The `language` setting wins. Without it, `LC_ALL`, `LC_MESSAGES` and `LANG` decide, in that
+order. A code (`ko`, `ja`, `zh`, `es`) or a name (`Korean`, `日本語`) both work. With nothing set,
+or with English or `C.UTF-8`, nothing is translated.
 
-> **Tip:** Claude Code's own `language` setting also asks Claude to *answer* in that language, which
-> leaves nothing to translate. To get English answers with translations, leave that setting empty
-> and set cc-trans's `language` option instead.
+## Settings
 
-## Engines
+List them with `omp plugin config list cc-trans`. Change one with
+`omp plugin config set cc-trans <key> <value>`. Each key also reads a `CC_TRANS_<NAME>` environment
+variable, but only as a fallback: a stored setting wins over the variable.
 
-| Engine | Setup | Notes |
+| Key | Default | |
 | --- | --- | --- |
-| `haiku` (default) | none | Uses your Claude Code session's model access |
-| `openai` | `openaiBaseUrl`, `openaiModel`, optional `openaiApiKey` | Any OpenAI-compatible server: Ollama, LM Studio, DeepSeek, OpenRouter… |
-| `command` | `command` | Your own program: `{"from","to","lines":[…]}` on stdin, `{"lines":[…]}` on stdout |
-
-When `openai` or `command` fails, `haiku` translates instead (unless `fallback` is off).
-
-## Options
-
-Set at install time, or under `pluginConfigs["cc-trans"].options` in settings.
-
-| Option | Default | |
-| --- | --- | --- |
-| `language` | empty | your language; empty follows Claude Code's `language` setting, then the system locale |
+| `language` | empty | your language; empty follows the system locale |
 | `engine` | `haiku` | `haiku` · `openai` · `command` |
 | `view` | `auto` | see the views above |
 | `preview` | `true` | live English preview while typing |
-| `haikuModel` | `haiku` | model for the haiku engine |
-| `openaiBaseUrl` · `openaiModel` · `openaiApiKey` | | for the openai engine |
-| `command` | | for the command engine |
-| `fallback` | `true` | fall back to haiku |
+| `model` | `@smol` | model for the `haiku` engine and for fallback: `provider/id`, a bare id, or a role alias |
+| `openaiBaseUrl` · `openaiModel` · `openaiApiKey` | | for the `openai` engine |
+| `command` | | for the `command` engine |
+| `fallback` | `true` | use the model engine when `openai` or `command` fails |
 
-## FAQ
+### Engines
 
-**Does my code go to the translator?** No. Only prose is sent: code blocks are skipped, and inline
-code, paths, URLs and identifiers are replaced with placeholders before anything leaves.
+| Engine | Setup | Notes |
+| --- | --- | --- |
+| `haiku` (default) | none | An OMP model, chosen by `model` (default `@smol`, else the current model). The name is kept from upstream. |
+| `openai` | `openaiBaseUrl`, `openaiModel`, optional `openaiApiKey` | Any OpenAI-compatible server: Ollama, LM Studio, DeepSeek, OpenRouter… |
+| `command` | `command` | Your own program: `{"from","to","lines":[…]}` on stdin, `{"lines":[…]}` on stdout |
 
-**What does it cost?** With the default engine, translations are Haiku calls on your Claude
-account: short prose only, and each line is cached for the session, so a line is never translated
-twice. With `openai` (a local Ollama, say) or `command`, it costs whatever that engine costs.
+## Differences from cc-trans
 
-**What if a translation fails?** Your prompt is sent as you typed it and a toast says why; a reply
-block keeps its English and says the translation failed. Nothing is ever blocked.
+| cc-trans (Claude Code) | omp-trans | Why |
+| --- | --- | --- |
+| `haiku` engine uses Claude Haiku | `haiku` uses an OMP model (`model`, default `@smol`) | OMP has no Haiku by default |
+| Views `stacked`, `side`, `interleave`, `below`, `translated` | `interleave`, `below`, `translated`, `original` | OMP reply renderers return Markdown, so column layouts cannot be drawn |
+| The sent prompt shows what you typed, with the English under it | The sent prompt shows the English; the original is saved as a `cc-trans-prompt` session entry, and a toast shows `EN ▸ …` | OMP has no renderer hook for user messages |
+| Replies already on screen are translated when you resume | Only replies from the current process are translated | Resuming would otherwise send every old reply |
+| Settings, queue and view persist in plugin state | Settings come from plugin config or environment; queue and view are in memory | OMP has no plugin state store |
+| Language can come from Claude Code's `language` setting | Not available | OMP has no such setting |
+| Replies already in your language are skipped by script share | Same, except for Latin-script languages (es, de, fr…) | Script share cannot tell English from another Latin-script language, so every English reply was skipped |
 
 ## Development
 
-```
-claude --plugin-dir .          # load it
-claude plugin validate .
-claude plugin test .
-vhs demo/demo.tape && demo/render.sh   # re-record the demo (needs vhs, ffmpeg, gifsicle)
+```sh
+bun install
+bun test
 ```
 
-See [DESIGN.md](DESIGN.md) for the unit model and the display rules.
+| Path | |
+| --- | --- |
+| `src/markdown.ts`, `src/engines.ts` | upstream, unchanged |
+| `src/detect.ts`, `src/language.ts`, `src/strings.ts` | upstream, with the Latin-script fix and without Claude-specific text |
+| `src/view.ts` | pure view helpers taken from upstream `register.tsx` |
+| `src/index.ts` | the OMP adapter |
+
+[DESIGN.md](DESIGN.md) is upstream's design note. It still names the old `hooks/` paths, which
+are now under `src/`.
+
+`bun test` runs upstream's `markdown.test.ts` plus engine, view and language tests taken from
+upstream's `mod.test.tsx`. Upstream's tests for prompt submit, rendering and preview drive Claude
+Code's mod harness and were not ported. That behavior was checked by running OMP 18.18.8 with the
+extension.
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
