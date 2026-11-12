@@ -10,7 +10,7 @@ test('interleave keeps every original line and adds translations as quotes', () 
   const out = plan.units.map(u => `[ko] ${u.text}`)
   const text = interleave(plan, out)
   expect(text).toContain('- one item\n- two item\n> - [ko] one item\n> - [ko] two item')
-  expect(text).toContain('| A | B |\n| --- | --- |\n| x y | z w |\n> | [ko] A | [ko] B |')
+  expect(text).toContain('| A | B |\n| --- | --- |\n| x y | z w |\n\n> | [ko] A | [ko] B |')
 })
 
 const CFG: EngineConfig = {

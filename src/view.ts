@@ -27,10 +27,14 @@ export function quote(md: string): string {
 
 const TRANSLATABLE: Record<string, true> = { prose: true, heading: true, list: true, quote: true, table: true }
 
-/** Each block followed by its translation as a quote; headings joined on one line. */
+/**
+ * Each block followed by its translation as a quote; headings joined on one line.
+ * A table's quote gets a blank line before it (a `>` line under a table row would be read as one
+ * more row of that table) and after it (a following line would continue the quote).
+ */
 export function interleave(plan: Plan, out: readonly (string | null)[]): string {
   return plan.blocks
-    .map(block => {
+    .map((block, i) => {
       if (!TRANSLATABLE[block.kind]) return block.original
       const units = block.parts.some(p => typeof p !== 'string')
       if (!units) return block.original
@@ -40,6 +44,10 @@ export function interleave(plan: Plan, out: readonly (string | null)[]): string 
         const original = block.original.replace(/\s+$/, '')
         const body = tr.replace(/^\s*#{1,6}\s*/, '').trim()
         return `${original} · ${body}`
+      }
+      if (block.kind === 'table') {
+        const next = plan.blocks[i + 1]
+        return `${block.original}\n\n${quote(tr)}${next && next.kind !== 'blank' ? '\n' : ''}`
       }
       return `${block.original}\n${quote(tr)}`
     })
