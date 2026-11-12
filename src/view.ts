@@ -1,6 +1,6 @@
 // Pure helpers that turn a Plan plus its translations into display Markdown.
 
-import { buildBlock, unmaskAt, type Plan } from './markdown'
+import { buildBlock, placeUnit, unmaskAt, type Plan } from './markdown'
 import { t } from './strings'
 import type { View } from './types'
 
@@ -62,7 +62,13 @@ export function foldedTranslation(plan: Plan, out: readonly (string | null)[]): 
         const lines = block.original.split('\n').length
         return `\`⋯ ${t('code')} (${lines})\``
       }
-      return block.parts.map(p => (typeof p === 'string' ? p : (out[p.unit] ?? unmaskAt(plan, p.unit)))).join('')
+      return block.parts
+        .map(p => {
+          if (typeof p === 'string') return p
+          const tr = out[p.unit]
+          return tr == null ? unmaskAt(plan, p.unit) : placeUnit(block, tr)
+        })
+        .join('')
     })
     .join('\n')
 }

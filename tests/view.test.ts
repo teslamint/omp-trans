@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 
-import { planMarkdown } from '../src/markdown'
-import { interleave } from '../src/view'
+import { buildDocument, planMarkdown, unmask } from '../src/markdown'
+import { foldedTranslation, interleave } from '../src/view'
 
 const TABLE = '| Key | Notes |\n| --- | --- |\n| a | first |'
 
@@ -47,4 +47,44 @@ test('a table followed by a blank line gets no extra blank line', () => {
 
 test('non-table blocks keep the quote directly under the original', () => {
   expect(translate('Hello there')).toBe('Hello there\n> T(Hello there)')
+})
+
+// A raw `|` in a translated cell ends the cell early: the rest of the translation is dropped on screen.
+const PIPE_TABLE = '| Option | Meaning |\n| --- | --- |\n| plain | Use A or B |'
+const plan = planMarkdown(PIPE_TABLE)
+const withPipe = plan.units.map(u => (u.text === 'Use A or B' ? 'Usa A o B (a | b)' : u.text))
+
+test('a pipe inside a translated cell is escaped in the interleave view', () => {
+  const quoted = interleave(plan, withPipe)
+    .split('\n')
+    .filter(l => l.startsWith('>'))
+  expect(quoted.at(-1)).toBe('> | plain | Usa A o B (a \\| b) |')
+})
+
+test('a pipe already escaped by the translator is not escaped twice', () => {
+  const out = plan.units.map(u => (u.text === 'Use A or B' ? 'Usa A o B (a \\| b)' : u.text))
+  expect(interleave(plan, out)).toContain('> | plain | Usa A o B (a \\| b) |')
+})
+
+test('the translated and below views escape cell pipes too', () => {
+  expect(buildDocument(plan, withPipe).split('\n').at(-1)).toBe('| plain | Usa A o B (a \\| b) |')
+  expect(foldedTranslation(plan, withPipe).split('\n').at(-1)).toBe('| plain | Usa A o B (a \\| b) |')
+})
+
+test('a pipe in translated prose is left alone', () => {
+  const prose = planMarkdown('Use A or B')
+  expect(buildDocument(prose, ['Usa A | B'])).toBe('Usa A | B')
+})
+
+test('the original cell text is kept when a cell has no translation', () => {
+  expect(buildDocument(plan, plan.units.map(() => null))).toBe(PIPE_TABLE)
+})
+
+test('a pipe inside an inline code span in a cell is kept as written', () => {
+  const md = '| Option | Meaning |\n| --- | --- |\n| plain | Use `a|b` here |'
+  const p = planMarkdown(md)
+  expect(buildDocument(p, p.units.map(unmask))).toBe(md)
+  const out = p.units.map(u => (u.text.startsWith('Use') ? 'Usa ⟦0⟧ aquí | ahora' : u.text))
+  const restored = out.map((s, i) => s.replace(/⟦\s*(\d+)\s*⟧/g, (_, k) => p.units[i]!.spans[+k] ?? ''))
+  expect(buildDocument(p, restored).split('\n').at(-1)).toBe('| plain | Usa `a|b` aquí \\| ahora |')
 })

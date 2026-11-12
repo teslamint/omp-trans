@@ -393,6 +393,22 @@ export function planMarkdown(md: string): Plan {
   return { blocks, units: ctx.units }
 }
 
+/**
+ * A translated unit as it may sit in `block`. A raw pipe would end a table cell early and drop the
+ * rest of its text on screen, so pipes in table cells are escaped. One the translator already
+ * escaped, or one inside an inline code span (which `tableRow` also leaves alone), is kept as is.
+ */
+export function placeUnit(block: Block, translated: string): string {
+  if (block.kind !== 'table' || !translated.includes('|')) return translated
+  const code = inlineCodeRanges(translated)
+  let out = ''
+  for (let i = 0; i < translated.length; i++) {
+    const c = translated[i] ?? ''
+    out += c === '|' && translated[i - 1] !== '\\' && !overlaps(code, i, i + 1) ? '\\|' : c
+  }
+  return out
+}
+
 /** The block with each unit replaced by `out[unit]`; null when one is missing. */
 export function buildBlock(plan: Plan, block: Block, out: readonly (string | null | undefined)[]): string | null {
   let text = ''
@@ -403,7 +419,7 @@ export function buildBlock(plan: Plan, block: Block, out: readonly (string | nul
     }
     const t = out[part.unit]
     if (t == null) return null
-    text += t
+    text += placeUnit(block, t)
   }
   return text
 }
@@ -413,7 +429,11 @@ export function buildDocument(plan: Plan, out: readonly (string | null | undefin
   return plan.blocks
     .map(block =>
       block.parts
-        .map(part => (typeof part === 'string' ? part : (out[part.unit] ?? unmaskAt(plan, part.unit))))
+        .map(part => {
+          if (typeof part === 'string') return part
+          const t = out[part.unit]
+          return t == null ? unmaskAt(plan, part.unit) : placeUnit(block, t)
+        })
         .join(''),
     )
     .join('\n')
