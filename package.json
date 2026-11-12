@@ -1,6 +1,6 @@
 {
   "name": "cc-trans",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Write and read in your own language while the model works in English: prompts go out translated, replies come back with a translation, code untouched. OMP port of midagedev/cc-trans.",
   "license": "MIT",
   "type": "module",
